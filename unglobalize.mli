@@ -1,2 +1,2 @@
-val global_funcs : lambda -> lambda
-val remove_free_vars : lambda -> lambda
+val unglobalize : Lambda.lambda -> int -> Lambda.lambda
+(** Take a lambda code and a valid identifier, puts the functions in front in a big switch with no free variables *)

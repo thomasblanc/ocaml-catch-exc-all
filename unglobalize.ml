@@ -1,5 +1,5 @@
 open Lambda
-
+open Ident
 
 class transformer =
 object (self)
@@ -13,21 +13,21 @@ object (self)
     }
   val mutable fv_to_change = IdentSet.empty
   val mutable fv_idents = []
-  val switch_ident = max_int
-  val apply_ident = pred max_int
-  val arg_ident = pred ( pred max_int)
+  val switch_ident = { stamp = max_int; name = "#switch_f"; flags = 0}
+  val apply_ident = { stamp = pred max_int; name = "#apply_f"; flags = 0}
+  val arg_ident = { stamp = pred ( pred max_int); name = "#arg_f"; flags = 0}
 
   method private v2f v =
     let rec v2f_aux v r = function
       | [] -> raise Not_found
       | h :: t when h = v -> r
-      | _ :: t -> aux v (succ r) t
+      | _ :: t -> v2f_aux v (succ r) t
     in
     v2f_aux v 0 fv_idents
 
-  method mk_construct l =
+(*  method mk_construct l =
     counter <- succ counter;
-    Lprim ( Pmakeblock (counter, Asttypes.Immutable), l)
+    Lprim ( Pmakeblock (counter, Asttypes.Immutable), l) *)
 
 
   inherit Lmapper.mapper as super
@@ -35,7 +35,7 @@ object (self)
 
   method! var i =
     if IdentSet.mem i fv_to_change
-    then Lprim ( Pfield ( self#v2f i), [switch_ident])
+    then Lprim ( Pfield ( self#v2f i), [Lvar switch_ident])
     else Lvar i
 
   method! func kind args body =
@@ -45,7 +45,7 @@ object (self)
     if IdentSet.is_empty fv
     then
       begin
-	let c = bigswitch.sw_num_consts in
+	let c = bigswitch.sw_numconsts in
 	bigswitch <-
 	  { bigswitch with
 	    sw_numconsts = succ c;
@@ -69,7 +69,7 @@ object (self)
 	    sw_numblocks = succ c;
 	    sw_blocks = (c, body) :: bigswitch.sw_consts;
 	  };
-	Lprim ( Pmakeblock (c, Immutable), fvl)
+	Lprim ( Pmakeblock (c, Asttypes.Immutable), List.map super#var fvl)
       end
 
   method! apply f args loc =
@@ -89,7 +89,7 @@ object (self)
     Lletrec (
       [ apply_ident,
 	Lfunction (
-	  Immutable, [ switch_ident; arg_ident],
+	  Curried, [ switch_ident; arg_ident],
 	  Lswitch ( Lvar ( switch_ident), switch)
 	)
       ],
@@ -104,7 +104,7 @@ object (self)
   val mutable last_i = i
   method mk_ident =
     last_i <- succ last_i;
-    last_i
+    { stamp = last_i; name = "#i"; flags = 0 }
 
   inherit transformer as super
 
@@ -125,8 +125,8 @@ object (self)
   method! send kind obj meth args loc =
     let i_obj = self#mk_ident in
     let i_meth = self#mk_ident in
-    let i_args = List.rev_map (fun _ -> self#mk_ident)
-    self#apply (self#func Curried (i_obj::i_meth::i_args) (super#meth (self#var i_obj) (self#var i_meth) (List.map self#var i_args) loc)) obj::meth::args loc
+    let i_args = List.rev_map (fun _ -> self#mk_ident) args in
+    self#apply (self#func Curried (i_obj::i_meth::i_args) (super#send kind (self#var i_obj) (self#var i_meth) (List.map self#var i_args) loc)) (obj::meth::args) loc
 
 end
 
