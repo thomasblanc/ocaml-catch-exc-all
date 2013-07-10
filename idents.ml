@@ -71,8 +71,8 @@ object (self)
       let env =
 	let open Env in
 	match sum with (* tester si id < 1000 et mettre last_env *)
-	| Env_value (_,id,_) | | Env_type( _, id, _) | Env_exception(_, id, _) | Env_module(_, id, _) | Env_modtype(_, id, _) | Env_class(_, id, _) | Env_cltype (_, id, _)
-	  when id < 1000 -> last_env
+	| Env_value (_,id,_) | Env_type( _, id, _) | Env_exception(_, id, _) | Env_module(_, id, _) | Env_modtype(_, id, _) | Env_class(_, id, _) | Env_cltype (_, id, _)
+	  when id.stamp < 1000 -> last_env
         | Env_empty -> last_env
 	| Env_value(s, id, desc) ->
           Env.add_value (self#ident id) (Subst.value_description subst ( self#t_value_description desc)) (self#env_from_summary s subst)
@@ -116,6 +116,70 @@ object (self)
       env
 end
 
+let merge_cmts to_merge =
+  let r = new reident 1000 Sm.empty in
+  let initial_env = ref Env.empty
+  and trees = ref [] in
+  Array.iteri
+    begin fun
+      i fn -> 
+	if is_cmi fn
+	then
+	  begin
+	    let cmi = read_cmi fn in
+	    let items = List.map r#t_signature_item cmi.Cmi_format.cmi_sign in
+	    let mtype = Mty_signature items in
+	    let id = r#add_import cmi.Cmi_format.cmi_name in
+	    let i = Ident.({stamp = id; name = cmi.Cmi_format.cmi_name; flags = 0 }) in
+	    r#add_modtype_env i (Modtype_manifest mtype)	    
+	  end
+	else
+	  trees :=
+	    begin
+	      let cmt = read_cmt fn in
+	      if i = 0 then initial_env := r#env cmt.cmt_initial_env;
+	      ( match cmt.cmt_annots with
+	      | Implementation s ->
+		r#reset_cache;
+		let s = r#structure s in
+		r#clear_type_table;
+		let mtype =
+		  let cmi = try read_cmi fn with _ -> read_cmi (fn^"i") in
+		  Mty_signature (cmi.Cmi_format.cmi_sign) in
+		let id = r#add_import cmt.cmt_modname in
+		let i = Ident.({stamp = id; name = cmt.cmt_modname; flags = 0 }) in
+		r#add_module_env i mtype;
+		{
+		  str_desc =
+		    Tstr_module (
+		      i,
+		      (mknoloc ""),
+		      {
+			mod_desc = Tmod_structure s;
+			mod_loc = Location.none;
+			mod_type = mtype;
+			mod_env = cmt.cmt_initial_env;
+		      }
+		    );
+		  str_loc = Location.none;
+		  str_env = cmt.cmt_initial_env;
+		}
+	      | _ -> assert false
+	      )
+	    end :: !trees
+    end to_merge;
+  {
+    str_items = List.rev !trees;
+    str_type =
+      List.rev_map 
+	(function
+	| {str_desc= Tstr_module (i,_,{mod_type = m}) } -> Sig_module (i,m,Trec_not)
+	| _ -> assert false)
+	!trees;
+    str_final_env = (match (List.hd !trees).str_desc with Tstr_module (_,_,{mod_desc = Tmod_structure s;_} ) -> s.str_final_env | _ -> assert false); (* a tester *)
+  }
+  
+(*
 let () =
   let arg_last = pred (Array.length Sys.argv) in
   if arg_last <= 1
@@ -197,3 +261,4 @@ let () =
 	!initial_env (* idem *)
 	None
     end
+*)

@@ -687,10 +687,10 @@ object (self)
 
   method t_class_signature sgn =
     let cty_self = self#t_type_expr sgn.cty_self in
-    cty_inher = map2 self#path (map self#t_type_expr) sgn.cty_inher
+    let cty_inher = map2 self#path (map self#t_type_expr) sgn.cty_inher in
 	{ sgn with
 	  cty_self;
-	  cty_inher = map2 self#path (map self#t_type_expr) sgn.cty_inher
+	  cty_inher;
 	}
   method t_class_declaration cd =
     let cty_params = map self#t_type_expr cd.cty_params in
