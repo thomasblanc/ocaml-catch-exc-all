@@ -59,3 +59,9 @@ object (self)
   | e -> super#expression e
   
 end
+
+let name_functions t i =
+  let m = (new mapping i) in
+  let t' = m # structure t in
+  (t', m # last_id)
+    

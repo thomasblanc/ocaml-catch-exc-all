@@ -28,6 +28,9 @@ object (self)
   val mutable last_env = Env.initial
   val env_cache =
     (Hashtbl.create 59 : ((Env.summary * Subst.t), Env.t) Hashtbl.t)
+
+  method last_ident = x
+
   method reset_cache =
     Hashtbl.clear env_cache;
     Env.reset_cache()
@@ -168,16 +171,19 @@ let merge_cmts to_merge =
 	      )
 	    end :: !trees
     end to_merge;
-  {
-    str_items = List.rev !trees;
-    str_type =
-      List.rev_map 
-	(function
-	| {str_desc= Tstr_module (i,_,{mod_type = m}) } -> Sig_module (i,m,Trec_not)
-	| _ -> assert false)
-	!trees;
-    str_final_env = (match (List.hd !trees).str_desc with Tstr_module (_,_,{mod_desc = Tmod_structure s;_} ) -> s.str_final_env | _ -> assert false); (* a tester *)
-  }
+  (
+    {
+      str_items = List.rev !trees;
+      str_type =
+	List.rev_map 
+	  (function
+	  | {str_desc= Tstr_module (i,_,{mod_type = m}) } -> Sig_module (i,m,Trec_not)
+	  | _ -> assert false)
+	  !trees;
+      str_final_env = (match (List.hd !trees).str_desc with Tstr_module (_,_,{mod_desc = Tmod_structure s;_} ) -> s.str_final_env | _ -> assert false); (* a tester *)
+    },
+    r # last_ident
+  )
   
 (*
 let () =
