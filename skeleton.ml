@@ -9,7 +9,7 @@ let ( typedtree, i) =
 
 (* Step two: put a name on every functions *)
 
-let ( typedtree, i) = Name_functions.name_functions typedtree i
+(* let ( typedtree, i) = Name_functions.name_functions typedtree i *)
 
 (* Step three: go to lambda code *)
 
