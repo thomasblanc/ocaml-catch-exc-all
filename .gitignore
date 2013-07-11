@@ -2,3 +2,5 @@
 *.cmo
 *.cmt
 *\~
+print_stuff
+*.cmti
