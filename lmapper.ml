@@ -25,7 +25,9 @@ object (self)
   | Lifused ( i, l)  -> self#ifused i l
 
   method private map = List.map self#lambda
-  method private map2 : type t. (t * lambda) list -> (t * lambda) list = List.map (fun ( i, lam) -> ( i, self#lambda lam))
+  method private map2 :
+  type t. (t * lambda) list -> (t * lambda) list =
+    List.map (fun ( i, lam) -> ( i, self#lambda lam))
   method var x = Lvar x
   method const c = Lconst c
   method apply func args loc =

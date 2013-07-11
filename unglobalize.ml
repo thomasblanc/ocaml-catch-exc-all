@@ -1,6 +1,11 @@
 open Lambda
 open Ident
 
+let noarg = { stamp = 0; name = ""; flags = 0 }
+let switch_ident = { stamp = max_int; name = "#switch_f"; flags = 0}
+let apply_ident = { stamp = pred max_int; name = "#apply_f"; flags = 0}
+let arg_ident = { stamp = pred ( pred max_int); name = "#arg_f"; flags = 0}
+
 class transformer =
 object (self)
   val mutable bigswitch =
@@ -13,9 +18,7 @@ object (self)
     }
   val mutable fv_to_change = IdentSet.empty
   val mutable fv_idents = []
-  val switch_ident = { stamp = max_int; name = "#switch_f"; flags = 0}
-  val apply_ident = { stamp = pred max_int; name = "#apply_f"; flags = 0}
-  val arg_ident = { stamp = pred ( pred max_int); name = "#arg_f"; flags = 0}
+  val mutable argument_var = noarg
 
   method private v2f v =
     let rec v2f_aux v r = function
@@ -35,22 +38,29 @@ object (self)
 
   method! var i =
     if IdentSet.mem i fv_to_change
-    then Lprim ( Pfield ( self#v2f i), [Lvar switch_ident])
-    else Lvar i
+    then self#prim  ( Pfield ( self#v2f i)) [super#var switch_ident]
+    else
+      if i = argument_var
+      then super#var arg_ident
+      else super#var i
 
   method! func kind args body =
     (* should make the function unary *)
+    let arg = match args with [a] -> a | _ -> assert false in
     let f = Lfunction ( kind, args, body) in
     let fv = free_variables ( f) in
     if IdentSet.is_empty fv
     then
       begin
 	let c = bigswitch.sw_numconsts in
+	let save_arg = argument_var in
+	argument_var <- arg;
 	bigswitch <-
 	  { bigswitch with
 	    sw_numconsts = succ c;
 	    sw_consts = (c,self#lambda body) :: bigswitch.sw_consts;
 	  };
+	argument_var <- save_arg;
 	Lconst ( Const_base (Asttypes.Const_int c))
       end
     else
@@ -61,13 +71,16 @@ object (self)
 	and save_fv_idents = fv_idents in
 	fv_to_change <- fv;
 	fv_idents <- fvl;
+	let save_arg = argument_var in
+	argument_var <- arg;
 	let body = self#lambda body in
 	fv_to_change <- save_fv_to_change;
 	fv_idents <- save_fv_idents;
+	argument_var <- save_arg;
 	bigswitch <-
 	  { bigswitch with
 	    sw_numblocks = succ c;
-	    sw_blocks = (c, body) :: bigswitch.sw_consts;
+	    sw_blocks = (c, body) :: bigswitch.sw_blocks;
 	  };
 	Lprim ( Pmakeblock (c, Asttypes.Immutable), List.map super#var fvl)
       end
@@ -115,8 +128,8 @@ object (self)
     | hd :: tl -> Lfunction ( k, [hd], self#func k tl body)
 
   method! apply f args loc =
-    let rec aux f =
-      function
+    let rec aux f args =
+      match args with
       | [] -> assert false
       | _ :: [] -> super#apply f args loc
       | hd :: tl -> aux (super#apply f [hd] loc) tl in
@@ -132,4 +145,4 @@ end
 
 let unglobalize lambda i =
   let o = new unarizer i in
-  o#mk_apply ( o#lambda lambda)
+  o#mk_apply ( o#lambda lambda) (* for safety, we should do 2 maps *)
