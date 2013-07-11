@@ -107,6 +107,10 @@ object (self)
       | _ -> assert false in
     Lapply ( Lvar apply_ident, [f;arg], loc)
 
+  (* Maybe I should handle the ugly rec construction *)
+  (* method! letrec l body = *)
+    
+
 
 (* The method to call at the end of the map *)
   method mk_apply l =
