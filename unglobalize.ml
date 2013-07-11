@@ -26,7 +26,7 @@ object (self)
       | h :: t when h = v -> r
       | _ :: t -> v2f_aux v (succ r) t
     in
-    v2f_aux v 0 fv_idents
+    v2f_aux v 1 fv_idents (* field 0 is the func ident *)
 
 (*  method mk_construct l =
     counter <- succ counter;
@@ -40,56 +40,73 @@ object (self)
     if IdentSet.mem i fv_to_change
     then self#prim  ( Pfield ( self#v2f i)) [super#var switch_ident]
     else
-      if i = argument_var
-      then super#var arg_ident
-      else super#var i
+      (* if i = argument_var *)
+      (* then  super#var arg_ident *)
+      (* else *) super#var i
 
   method! func kind args body =
     (* should make the function unary *)
-    let arg = match args with [a] -> a | _ -> assert false in
+    let arg =
+      match args with
+      | [a] -> a
+      | _ -> assert false in
     let f = Lfunction ( kind, args, body) in
     let fv = free_variables ( f) in
-    if IdentSet.is_empty fv
-    then
+    (* if IdentSet.is_empty fv *)
+    (* then *)
+    (*   begin *)
+    (* 	(\* let save_arg = argument_var in *\) *)
+    (* 	(\* argument_var <- arg; *\) *)
+    (* 	let body' = self#lambda body in *)
+    (* 	(\* argument_var <- save_arg; *\) *)
+    (* 	let c = bigswitch.sw_numconsts in *)
+    (* 	let body'' = *)
+    (* 	  Llet ( Alias, arg, (super#var arg_ident), body') in *)
+    (* 	bigswitch <- *)
+    (* 	  { bigswitch with *)
+    (* 	    sw_numconsts = succ c; *)
+    (* 	    sw_consts = (c, body'') :: bigswitch.sw_consts; *)
+    (* 	  }; *)
+    (* 	Lconst ( Const_base (Asttypes.Const_int c)) *)
+    (*   end *)
+    (* else *)
       begin
-	let c = bigswitch.sw_numconsts in
-	let save_arg = argument_var in
-	argument_var <- arg;
-	bigswitch <-
-	  { bigswitch with
-	    sw_numconsts = succ c;
-	    sw_consts = (c,self#lambda body) :: bigswitch.sw_consts;
-	  };
-	argument_var <- save_arg;
-	Lconst ( Const_base (Asttypes.Const_int c))
-      end
-    else
-      begin
-	let c = bigswitch.sw_numblocks in
 	let fvl = IdentSet.elements fv in
 	let save_fv_to_change = fv_to_change
 	and save_fv_idents = fv_idents in
 	fv_to_change <- fv;
 	fv_idents <- fvl;
-	let save_arg = argument_var in
-	argument_var <- arg;
-	let body = self#lambda body in
+	(* let save_arg = argument_var in *)
+	(* argument_var <- arg; *)
+	let body' = self#lambda body in
 	fv_to_change <- save_fv_to_change;
 	fv_idents <- save_fv_idents;
-	argument_var <- save_arg;
+	(* argument_var <- save_arg; *)
+	let body'' =
+	  Llet ( Alias, arg, (super#var arg_ident), body') in
+	let c = bigswitch.sw_numconsts in
 	bigswitch <-
 	  { bigswitch with
-	    sw_numblocks = succ c;
-	    sw_blocks = (c, body) :: bigswitch.sw_blocks;
+	    sw_numconsts = succ c;
+	    sw_consts = ( c, body'') :: bigswitch.sw_consts;
 	  };
-	Lprim ( Pmakeblock (c, Asttypes.Immutable), List.map super#var fvl)
+	Lprim (
+	  Pmakeblock ( 0, Asttypes.Immutable),
+	  (
+	    (Lconst ( Const_base (Asttypes.Const_int c)))
+	    :: List.map super#var fvl
+	  )
+	)
       end
 
   method! apply f args loc =
     let f = self#lambda f in
-    let args = List.map self#lambda args in
-    Lapply ( Lvar apply_ident, f::args, loc)
-  (* not good, should be unary function ! *)
+    let arg =
+      match args with
+      | [a] -> [self#lambda a]
+      | _ -> (* assert false *) print_endline "prout"; 
+	List.map self#lambda args in
+    Lapply ( Lvar apply_ident, f::arg, loc)
 
 
 (* The method to call at the end of the map *)
@@ -103,7 +120,7 @@ object (self)
       [ apply_ident,
 	Lfunction (
 	  Curried, [ switch_ident; arg_ident],
-	  Lswitch ( Lvar ( switch_ident), switch)
+	  Lswitch ( Lprim ( (Pfield 0), [Lvar switch_ident]), switch)
 	)
       ],
       l
@@ -119,13 +136,13 @@ object (self)
     last_i <- succ last_i;
     { stamp = last_i; name = "#i"; flags = 0 }
 
-  inherit transformer as super
+  inherit Lmapper.mapper (*transformer*) as super
 
   method! func k args body =
     match args with
       [] -> assert false
-    | _ :: [] -> super#func k args body
-    | hd :: tl -> Lfunction ( k, [hd], self#func k tl body)
+    | a :: [] -> super#func k [a] body
+    | hd :: tl -> super#func k [hd] (self#func k tl body)
 
   method! apply f args loc =
     let rec aux f args =
@@ -144,5 +161,7 @@ object (self)
 end
 
 let unglobalize lambda i =
-  let o = new unarizer i in
-  o#mk_apply ( o#lambda lambda) (* for safety, we should do 2 maps *)
+  let u = new unarizer i in
+  let lambda' = u#lambda lambda in
+  let o = new transformer in
+  o#mk_apply ( o#lambda lambda') (* for safety, we should do 2 maps *)
