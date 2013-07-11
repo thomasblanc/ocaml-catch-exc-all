@@ -103,10 +103,9 @@ object (self)
     let f = self#lambda f in
     let arg =
       match args with
-      | [a] -> [self#lambda a]
-      | _ -> (* assert false *) print_endline "prout"; 
-	List.map self#lambda args in
-    Lapply ( Lvar apply_ident, f::arg, loc)
+      | [a] -> self#lambda a
+      | _ -> assert false in
+    Lapply ( Lvar apply_ident, [f;arg], loc)
 
 
 (* The method to call at the end of the map *)
