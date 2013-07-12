@@ -1,0 +1,9 @@
+begin lib "tt"
+ files [ "tt_mapper.ml" "tt_iter.ml" ]
+ requires ["compiler-libs"]
+end
+
+begin program "catch"
+ files = [ "idents.ml" "unglobalize.ml" "skeleton.ml" ]
+ requires = [ "tt" "compiler-libs" ]
+end
