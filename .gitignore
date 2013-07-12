@@ -4,3 +4,6 @@
 *\~
 print_stuff
 *.cmti
+_obuild/*
+_obuild
+ocp-build.root*
