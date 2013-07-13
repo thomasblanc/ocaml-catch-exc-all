@@ -117,6 +117,10 @@ object (self)
       in
       Hashtbl.add env_cache (sum, subst) env;
       env
+
+  method ! path = function
+  | p -> super#path p
+
 end
 
 let merge_cmts to_merge =
