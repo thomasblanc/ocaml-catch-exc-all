@@ -134,6 +134,8 @@ end
 class unarizer i =
 object (self)
 
+  val mutable globals = []
+
   val mutable last_i = i
   method mk_ident =
     last_i <- succ last_i;
@@ -160,6 +162,14 @@ object (self)
     let i_meth = self#mk_ident in
     let i_args = List.rev_map (fun _ -> self#mk_ident) args in
     self#apply (self#func Curried (i_obj::i_meth::i_args) (super#send kind (self#var i_obj) (self#var i_meth) (List.map self#var i_args) loc)) (obj::meth::args) loc
+
+  method! prim p l =
+    match p,l with
+      Psetglobal i, _ -> globals <- (i,l) :: globals; super#prim p l
+    | Pfield n, [Lprim (Pgetglobal i,[])] ->
+      let f = List.assoc i globals in
+      List.nth f n
+    | _ -> super#prim p l
 
 end
 
