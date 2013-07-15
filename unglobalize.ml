@@ -1,7 +1,7 @@
 open Lambda
 open Ident
 
-module Imap = Map.Make ( struct type t = Ident.t let compare a b = compare a.stamp compare b.stamp end )
+module Imap = Map.Make ( struct type t = Ident.t let compare a b = compare a.stamp b.stamp end )
 
 let noarg = { stamp = 0; name = ""; flags = 0 }
 let switch_ident = { stamp = max_int; name = "#switch_f"; flags = 0}
@@ -11,7 +11,7 @@ let arg_ident = { stamp = pred ( pred max_int); name = "#arg_f"; flags = 0}
 class transformer =
 object (self)
 
-  val mutable funs = Imap.empty : lambda Imap.t
+  val mutable funs = (Imap.empty : lambda Imap.t)
 
   val mutable bigswitch =
     {
@@ -83,7 +83,7 @@ object (self)
 	fv_idents <- fvl;
 	(* let save_arg = argument_var in *)
 	(* argument_var <- arg; *)
-	let body' = match f with Lfunction ( _, _, b) -> | _ -> assert false in
+	let body' = match f with Lfunction ( _, _, b) -> b | _ -> assert false in
 	fv_to_change <- save_fv_to_change;
 	fv_idents <- save_fv_idents;
 	(* argument_var <- save_arg; *)
@@ -121,7 +121,7 @@ object (self)
       Lfunction (fk,fis,fl) ->
 	let block = self#func fk fis fl in
 	funs <- Imap.add i block funs;
-	Llet ( k, block, self#lambda lin)
+	Llet ( k, i, block, self#lambda lin)
     | _ -> super#letin k i lam lin
 
 
