@@ -148,7 +148,7 @@ object (self)
       [] -> assert false
     | a :: [] ->
       let a = self#ident a in
-      Lfunc ( k, [a], self#lambda body)
+      Lfunction ( k, [a], self#lambda body)
     | hd :: tl ->
       let a = self#ident hd in
       super#func k [a] (self#func k tl body) (* is that smart ? *)

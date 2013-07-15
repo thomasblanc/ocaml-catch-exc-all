@@ -6,12 +6,13 @@
 let () = print_endline "Step 1"
 
 let load_tt s =
-  let cmt = Cmt_format.read_cmt s in
-  match cmt.Cmt_format.cmt_annots with
-    Cmt_format.Implementation s -> s
+  let open Cmt_format in
+  let cmt = read_cmt s in
+  match cmt.cmt_annots with
+    Implementation s -> (cmt.cmt_modname,s)
   | _ -> assert false
 
-let typedtree =
+let typedtrees =
   let open Sys in
   let open Array in
   (* Idents.merge_cmts ( sub argv 1 ( pred ( length argv))) *)
@@ -27,7 +28,11 @@ let typedtree =
 
 let () = print_endline "Step 3"
 
-let lambda = Translmod.transl_implementation "Mod" ( typedtree, Typedtree.Tcoerce_none)
+let lambdas =
+  Array.map
+    (fun ( name, tree) ->
+      Translmod.transl_implementation name ( tree, Typedtree.Tcoerce_none)
+    ) typedtrees
 
 (* Step four: globalize the functions, unglobalize the non-func-values *)
 (* Maybe I should remove that structure around first ? Yes ? No ? Maybe ? *)
@@ -36,7 +41,7 @@ let lambda = Translmod.transl_implementation "Mod" ( typedtree, Typedtree.Tcoerc
 
 let () = print_endline "Step 4 and 5"
 
-let lambda = Unglobalize.unglobalize lambda i
+let lambda = Unglobalize.unglobalize lambdas
 
 (* for debugging purpose *)
 let () = Printlambda.lambda Format.std_formatter lambda
