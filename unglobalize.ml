@@ -50,7 +50,7 @@ object (self)
 	then Lvar i
 	else
 	  if IdentSet.mem i fv
-	  then self#prim  ( Pfield ( self#v2f i)) [Lvar switch_ident]
+	  then Lprim  ( Pfield ( self#v2f i), [Lvar switch_ident])
 	  else
 	    begin
 	      fv <- IdentSet.add i fv;
