@@ -85,23 +85,22 @@ object (self)
     fv_num <- fv_num_save;
     nonfree_vars <- nonfree_vars_save;
     match f with
-    | Lfunction ( _, arg, body) -> 
-	let body'' =
-	  Llet ( Alias, arg, (super#var arg_ident), body') in
-	let c = bigswitch.sw_numconsts in
-	bigswitch <-
-	  { bigswitch with
-	    sw_numconsts = succ c;
-	    sw_consts = ( c, body'') :: bigswitch.sw_consts;
-	  };
-	Lprim (
-	  Pmakeblock ( 0, Asttypes.Immutable),
-	  (
-	    (Lconst ( Const_base (Asttypes.Const_int c)))
-	    :: List.map super#var fvl
-	  )
-	)      
-    | _ -> assert false in
+    | Lfunction ( _, [arg], body') ->
+      let body'' = Llet ( Alias, arg, (super#var arg_ident), body') in
+      let c = bigswitch.sw_numconsts in
+      bigswitch <-
+	{ bigswitch with
+	  sw_numconsts = succ c;
+	  sw_consts = ( c, body'') :: bigswitch.sw_consts;
+	};
+      Lprim (
+	Pmakeblock ( 0, Asttypes.Immutable),
+	(
+	  (Lconst ( Const_base (Asttypes.Const_int c)))
+	  :: List.map super#var fvl
+	)
+      )
+    | _ -> assert false
 
   method! apply f args loc =
     let f = self#lambda f in
