@@ -9,7 +9,7 @@ let ( typedtree, i) =
   let open Array in
   Idents.merge_cmts ( sub argv 1 ( pred ( length argv)))
 
-let () = Printtyped.implementation Format.std_formatter typedtree
+(* let () = Printtyped.implementation Format.std_formatter typedtree *)
 
 (* Step two: put a name on every functions *)
 
