@@ -9,7 +9,7 @@ let load_tt s =
   let open Cmt_format in
   let cmt = read_cmt s in
   match cmt.cmt_annots with
-    Implementation s -> (cmt.cmt_modname, Tt_restore.restore s)
+    Implementation str -> Tt_restore.restore s str cmt.cmt_modname
   | _ -> assert false
 
 let typedtrees =
