@@ -179,7 +179,11 @@ object (self)
   method! prim p l =
     match p,l with
       Psetglobal i, _ -> globals <- (i,l) :: globals; super#prim p l
-    | Pfield n, [Lprim (Pgetglobal i,[])] -> List.nth ( List.assoc i globals) n
+    | Pfield n, [Lprim (Pgetglobal i,[])] ->
+      begin
+      try ( List.nth ( List.assoc i globals) n ) with
+      | Not_found -> super#prim p l
+      end
     | _ -> super#prim p l
 
 end
