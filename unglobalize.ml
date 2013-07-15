@@ -137,20 +137,21 @@ end
 class unarizer i =
 object (self)
 
+  inherit Identer.reidenter i
+
   val mutable globals = []
 
-  val mutable last_i = i
-  method mk_ident =
-    last_i <- succ last_i;
-    { stamp = last_i; name = "#i"; flags = 0 }
-
-  inherit Lmapper.mapper (*transformer*) as super
+  inherit Lmapper.mapper as super
 
   method! func k args body =
     match args with
       [] -> assert false
-    | a :: [] -> super#func k [a] body
-    | hd :: tl -> super#func k [hd] (self#func k tl body)
+    | a :: [] ->
+      let a = self#ident a in
+      Lfunc ( k, [a], self#lambda body)
+    | hd :: tl ->
+      let a = self#ident hd in
+      super#func k [a] (self#func k tl body) (* is that smart ? *)
 
   method! apply f args loc =
     let rec aux f args =
@@ -161,20 +162,39 @@ object (self)
     aux f args
 
   method! send kind obj meth args loc =
-    let i_obj = self#mk_ident in
-    let i_meth = self#mk_ident in
-    let i_args = List.rev_map (fun _ -> self#mk_ident) args in
-    self#apply (self#func Curried (i_obj::i_meth::i_args) (super#send kind (self#var i_obj) (self#var i_meth) (List.map self#var i_args) loc)) (obj::meth::args) loc
+    let i_obj = self#mk_ident "#object" in
+    let i_meth = self#mk_ident "#method" in
+    let i_args = List.rev_map (fun _ -> self#mk_ident "#argument") args in
+    self#apply
+      (self#func
+	 Curried
+	 (i_obj::i_meth::i_args)
+	 (super#send kind (Lvar i_obj) (Lvar i_meth) (List.map (fun i -> Lvar i) i_args) loc)
+      )
+      (obj::meth::args)
+      loc
 
   method! prim p l =
     match p,l with
-      Psetglobal i, _ -> globals <- (i,l) :: globals; super#prim p l
+      Psetglobal i, _ ->
+	(* Printf.printf "New global %s/%d\n" i.name i.stamp; *)
+	let i = self#ident i in
+	globals <- (i,l) :: globals; super#prim p l
     | Pfield n, [Lprim (Pgetglobal i,[])] ->
       begin
-      try ( List.nth ( List.assoc i globals) n ) with
-      | Not_found -> super#prim p l
+	let i = self#ident i in
+	try ( List.nth ( List.assoc i globals) n ) with
+	| Not_found -> (* print_endline "fail !"; *) super#prim p l
       end
     | _ -> super#prim p l
+
+  method! var i = Lvar (self#ident i)
+  method! letin k i e b = super#letin k (self#ident i) e b
+  method! letrec l b = super#letrec (List.map (fun ( i, e) -> (self#ident i, e)) l) b
+  method! trywith l i l2 = super#trywith l (self#ident i) l2
+  method! fordo id = super#fordo (self#ident id)
+  method! assign i = super#assign (self#ident i)
+  method! ifused id = super#ifused (self#ident id)
 
 end
 
