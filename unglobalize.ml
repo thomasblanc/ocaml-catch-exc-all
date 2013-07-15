@@ -186,7 +186,7 @@ object (self)
 	try ( List.nth ( List.assoc i globals) n ) with
 	| Not_found -> (* print_endline "fail !"; *) super#prim p l
       end
-    | _ -> super#prim p l
+    | Pgetglobal i, []  -> self#var i
 
   method! var i = Lvar (self#ident i)
   method! letin k i e b = super#letin k (self#ident i) e b
@@ -202,11 +202,17 @@ let unglobalize lambdas =
   let u = new unarizer 1000 in
   let rec aux i =
     if i = pred (Array.length lambdas)
-    then u#lambda lambdas.(i)
+    then
+      match u#lambda lambdas.(i) with
+      | Lprim (Psetglobal _, [lam]) -> lam
+      | _ -> assert false
     else
       let l = u#lambda lambdas.(i) in
       u#clear;
-      Lsequence (l,aux (succ i))
+      match l with
+      | Lprim (Psetglobal id, [lam]) ->
+	Llet ( Alias, id, lam, aux (succ i))
+      | _ -> assert false
   in
   let lambda' = aux 0 in
   let o = new transformer in
