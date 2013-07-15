@@ -184,7 +184,7 @@ object (self)
       begin
 	let i = self#ident i in
 	try ( List.nth ( List.assoc i globals) n ) with
-	| Not_found -> (* print_endline "fail !"; *) super#prim p l
+	| Not_found -> super#prim p l
       end
     | Pgetglobal i, []  -> self#var i
     | _ -> super#prim p l
@@ -216,5 +216,6 @@ let unglobalize lambdas =
       | _ -> assert false
   in
   let lambda' = aux 0 in
+  print_endline "Merged and unarized !";
   let o = new transformer in
   o#mk_apply ( o#lambda lambda') (* for safety, we should do 2 maps *)
