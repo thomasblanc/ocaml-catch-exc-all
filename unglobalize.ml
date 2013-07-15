@@ -1,6 +1,8 @@
 open Lambda
 open Ident
 
+module Imap = Map.Make ( struct type t = Ident.t let compare a b = compare a.stamp compare b.stamp end )
+
 let noarg = { stamp = 0; name = ""; flags = 0 }
 let switch_ident = { stamp = max_int; name = "#switch_f"; flags = 0}
 let apply_ident = { stamp = pred max_int; name = "#apply_f"; flags = 0}
@@ -8,6 +10,9 @@ let arg_ident = { stamp = pred ( pred max_int); name = "#arg_f"; flags = 0}
 
 class transformer =
 object (self)
+
+  val mutable funs = Imap.empty : lambda Imap.t
+
   val mutable bigswitch =
     {
       sw_numconsts = 0;
@@ -16,6 +21,7 @@ object (self)
       sw_blocks = [];
       sw_failaction = None;
     }
+
   val mutable fv_to_change = IdentSet.empty
   val mutable fv_idents = []
   val mutable argument_var = noarg
@@ -37,12 +43,11 @@ object (self)
 
 
   method! var i =
-    if IdentSet.mem i fv_to_change
-    then self#prim  ( Pfield ( self#v2f i)) [super#var switch_ident]
-    else
-      (* if i = argument_var *)
-      (* then  super#var arg_ident *)
-      (* else *) super#var i
+    try Imap.find i funs with
+      Not_found ->
+	if IdentSet.mem i fv_to_change
+	then self#prim  ( Pfield ( self#v2f i)) [super#var switch_ident]
+	else super#var i
 
   method! func kind args body =
     (* should make the function unary *)
@@ -50,8 +55,8 @@ object (self)
       match args with
       | [a] -> a
       | _ -> assert false in
-    let f = Lfunction ( kind, args, body) in
-    let fv = free_variables ( f) in
+    let f = super#func kind args body in
+    let fv = free_variables f in
     (* if IdentSet.is_empty fv *)
     (* then *)
     (*   begin *)
@@ -78,7 +83,7 @@ object (self)
 	fv_idents <- fvl;
 	(* let save_arg = argument_var in *)
 	(* argument_var <- arg; *)
-	let body' = self#lambda body in
+	let body' = match f with Lfunction ( _, _, b) -> | _ -> assert false in
 	fv_to_change <- save_fv_to_change;
 	fv_idents <- save_fv_idents;
 	(* argument_var <- save_arg; *)
@@ -110,6 +115,14 @@ object (self)
   (* Maybe I should handle the ugly rec construction *)
   (* method! letrec l body = *)
     
+
+  method! letin k i lam lin =
+    match lam with
+      Lfunction (fk,fis,fl) ->
+	let block = self#func fk fis fl in
+	funs <- Imap.add i block funs;
+	Llet ( k, block, self#lambda lin)
+    | _ -> super#letin k i lam lin
 
 
 (* The method to call at the end of the map *)
@@ -166,9 +179,7 @@ object (self)
   method! prim p l =
     match p,l with
       Psetglobal i, _ -> globals <- (i,l) :: globals; super#prim p l
-    | Pfield n, [Lprim (Pgetglobal i,[])] ->
-      let f = List.assoc i globals in
-      List.nth f n
+    | Pfield n, [Lprim (Pgetglobal i,[])] -> List.nth ( List.assoc i globals) n
     | _ -> super#prim p l
 
 end
