@@ -99,7 +99,9 @@ object (self)
     Lapply ( Lvar apply_ident, [f;arg], loc)
 
   (* Maybe I should handle the ugly rec construction *)
-  (* method! letrec l body = *)
+  method! letrec l body =
+    List.iter (fun (i,_) -> self#boundvar i) l;
+    super#letrec l body
     
 
   method! letin k i lam lin =
@@ -178,6 +180,7 @@ end
 
 let unglobalize lambda i =
   let u = new unarizer i in
+  (* print_endline "Unarized !"; *)
   let lambda' = u#lambda lambda in
   let o = new transformer in
   o#mk_apply ( o#lambda lambda') (* for safety, we should do 2 maps *)
