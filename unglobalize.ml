@@ -176,10 +176,10 @@ object (self)
 
   method! prim p l =
     match p,l with
-      Psetglobal i, _ ->
+    | Psetglobal i, _ ->
 	(* Printf.printf "New global %s/%d\n" i.name i.stamp; *)
-	let i = self#ident i in
-	globals <- (i,l) :: globals; super#prim p l
+      let i = self#ident i in
+      globals <- (i,l) :: globals; super#prim p l
     | Pfield n, [Lprim (Pgetglobal i,[])] ->
       begin
 	let i = self#ident i in
@@ -187,6 +187,7 @@ object (self)
 	| Not_found -> (* print_endline "fail !"; *) super#prim p l
       end
     | Pgetglobal i, []  -> self#var i
+    | _ -> super#prim p l
 
   method! var i = Lvar (self#ident i)
   method! letin k i e b = super#letin k (self#ident i) e b
