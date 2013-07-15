@@ -176,10 +176,11 @@ object (self)
 
   method! prim p l =
     match p,l with
-    | Psetglobal i, _ ->
+    | Psetglobal i, [Lprim ( Pmakeblock _, ll)]  ->
 	(* Printf.printf "New global %s/%d\n" i.name i.stamp; *)
       let i = self#ident i in
-      globals <- (i,l) :: globals; super#prim p l
+      (* Printlambda.lambda Format.std_formatter ( Lprim (p,l)); *)
+      self#register_global i ll; super#prim p l
     | Pfield n, [Lprim (Pgetglobal i,[])] ->
       begin
 	let i = self#ident i in
@@ -197,6 +198,9 @@ object (self)
   method! assign i = super#assign (self#ident i)
   method! ifused id = super#ifused (self#ident id)
 
+  method register_global i ll =
+    globals <- (i,ll) :: globals
+
 end
 
 let unglobalize lambdas =
@@ -205,7 +209,9 @@ let unglobalize lambdas =
     if i = pred (Array.length lambdas)
     then
       match u#lambda lambdas.(i) with
-      | Lprim (Psetglobal _, [lam]) -> lam
+      | Lprim (Psetglobal id, ( [Lprim (Pmakeblock _, ll) as lam]) ) ->
+	u#register_global id ll;
+	lam
       | _ -> assert false
     else
       let l = u#lambda lambdas.(i) in
@@ -216,6 +222,5 @@ let unglobalize lambdas =
       | _ -> assert false
   in
   let lambda' = aux 0 in
-  print_endline "Merged and unarized !";
   let o = new transformer in
   o#mk_apply ( o#lambda lambda') (* for safety, we should do 2 maps *)
