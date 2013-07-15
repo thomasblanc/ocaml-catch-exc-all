@@ -56,7 +56,7 @@ object (self)
 	      fv <- IdentSet.add i fv;
 	      fv_idents <- i :: fv_idents;
 	      fv_num <- succ fv_num;
-	      self#prim (Pfield fv_num) [super#var switch_ident]
+	      Lprim (Pfield fv_num, [super#var switch_ident])
 	    end
 
   method! func kind args body =
