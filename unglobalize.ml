@@ -22,17 +22,22 @@ object (self)
       sw_failaction = None;
     }
 
-  val mutable fv_to_change = IdentSet.empty
+  val mutable fv = IdentSet.empty
+  (* val mutable fv_to_change = IdentSet.empty *)
   val mutable fv_idents = []
-  val mutable argument_var = noarg
+  val mutable fv_num = 0
+  val mutable nonfree_vars = IdentSet.empty
+  (* val mutable argument_var = noarg *)
+
+  method boundvar i = nonfree_vars <- IdentSet.add i nonfree_vars
 
   method private v2f v =
     let rec v2f_aux v r = function
       | [] -> raise Not_found
       | h :: t when h = v -> r
-      | _ :: t -> v2f_aux v (succ r) t
+      | _ :: t -> v2f_aux v (pred r) t
     in
-    v2f_aux v 1 fv_idents (* field 0 is the func ident *)
+    v2f_aux v fv_num fv_idents (* field 0 is the func ident *)
 
 (*  method mk_construct l =
     counter <- succ counter;
@@ -45,48 +50,42 @@ object (self)
   method! var i =
     try Imap.find i funs with
       Not_found ->
-	if IdentSet.mem i fv_to_change
-	then self#prim  ( Pfield ( self#v2f i)) [super#var switch_ident]
-	else super#var i
+	(* fv <- IdentSet.add i fv; *)
+	if IdentSet.mem i nonfree_vars 
+	then Lvar i
+	else
+	  if IdentSet.mem i fv
+	  then self#prim  ( Pfield ( self#v2f i)) [super#var switch_ident]
+	  else
+	    begin
+	      fv <- IdentSet.add i fv;
+	      fv_idents <- i :: fv_idents;
+	      fv_num <- succ fv_num;
+	      self#prim (Pfield fv_num) [super#var switch_ident]
+	    end
 
   method! func kind args body =
-    (* should make the function unary *)
-    let arg =
-      match args with
-      | [a] -> a
-      | _ -> assert false in
+    (* should have a unary function *)
+    (* let arg = *)
+    (*   match args with *)
+    (*   | [a] -> a *)
+    (*   | _ -> assert false in *)
+    let fv_save = fv in
+    fv <- IdentSet.empty;
+    let fv_idents_save = fv_idents in
+    fv_idents <- [];
+    let fv_num_save = fv_num in
+    fv_num <- 0;
+    let nonfree_vars_save = nonfree_vars in
+    nonfree_vars <- IdentSet.empty;
     let f = super#func kind args body in
-    let fv = free_variables f in
-    (* if IdentSet.is_empty fv *)
-    (* then *)
-    (*   begin *)
-    (* 	(\* let save_arg = argument_var in *\) *)
-    (* 	(\* argument_var <- arg; *\) *)
-    (* 	let body' = self#lambda body in *)
-    (* 	(\* argument_var <- save_arg; *\) *)
-    (* 	let c = bigswitch.sw_numconsts in *)
-    (* 	let body'' = *)
-    (* 	  Llet ( Alias, arg, (super#var arg_ident), body') in *)
-    (* 	bigswitch <- *)
-    (* 	  { bigswitch with *)
-    (* 	    sw_numconsts = succ c; *)
-    (* 	    sw_consts = (c, body'') :: bigswitch.sw_consts; *)
-    (* 	  }; *)
-    (* 	Lconst ( Const_base (Asttypes.Const_int c)) *)
-    (*   end *)
-    (* else *)
-      begin
-	let fvl = IdentSet.elements fv in
-	let save_fv_to_change = fv_to_change
-	and save_fv_idents = fv_idents in
-	fv_to_change <- fv;
-	fv_idents <- fvl;
-	(* let save_arg = argument_var in *)
-	(* argument_var <- arg; *)
-	let body' = match f with Lfunction ( _, _, b) -> b | _ -> assert false in
-	fv_to_change <- save_fv_to_change;
-	fv_idents <- save_fv_idents;
-	(* argument_var <- save_arg; *)
+    fv <- fv_save;
+    let fvl = List.rev fv_idents in
+    fv_idents <- fv_idents_save;
+    fv_num <- fv_num_save;
+    nonfree_vars <- nonfree_vars_save;
+    match f with
+    | Lfunction ( _, arg, body) -> 
 	let body'' =
 	  Llet ( Alias, arg, (super#var arg_ident), body') in
 	let c = bigswitch.sw_numconsts in
@@ -101,8 +100,8 @@ object (self)
 	    (Lconst ( Const_base (Asttypes.Const_int c)))
 	    :: List.map super#var fvl
 	  )
-	)
-      end
+	)      
+    | _ -> assert false in
 
   method! apply f args loc =
     let f = self#lambda f in
@@ -122,7 +121,9 @@ object (self)
 	let block = self#func fk fis fl in
 	funs <- Imap.add i block funs;
 	Llet ( k, i, block, self#lambda lin)
-    | _ -> super#letin k i lam lin
+    | _ ->
+      self#boundvar i;
+      super#letin k i lam lin
 
 
 (* The method to call at the end of the map *)
