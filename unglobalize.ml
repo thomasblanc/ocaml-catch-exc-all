@@ -198,9 +198,16 @@ object (self)
 
 end
 
-let unglobalize lambda i =
-  let u = new unarizer i in
-  (* print_endline "Unarized !"; *)
-  let lambda' = u#lambda lambda in
+let unglobalize lambdas =
+  let u = new unarizer 1000 in
+  let rec aux i =
+    if i = pred (Array.length lambdas)
+    then u#lambda lambdas.(i)
+    else
+      let l = u#lambda lambdas.(i) in
+      u#clear;
+      Lsequence (l,aux (succ i))
+  in
+  let lambda' = aux 0 in
   let o = new transformer in
   o#mk_apply ( o#lambda lambda') (* for safety, we should do 2 maps *)

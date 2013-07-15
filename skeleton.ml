@@ -1,13 +1,21 @@
 (* I should, someday, put the main code in here, here's the trailer: *)
 
 (* Step one: merge the cmts *)
+(* Now we just load them, merging later *)
 
 let () = print_endline "Step 1"
 
-let ( typedtree, i) =
+let load_tt s =
+  let cmt = Cmt_format.read_cmt s in
+  match cmt.Cmt_format.cmt_annots with
+    Cmt_format.Implementation s -> s
+  | _ -> assert false
+
+let typedtree =
   let open Sys in
   let open Array in
-  Idents.merge_cmts ( sub argv 1 ( pred ( length argv)))
+  (* Idents.merge_cmts ( sub argv 1 ( pred ( length argv))) *)
+  map load_tt ( sub argv 1 ( pred ( length argv)))
 
 (* let () = Printtyped.implementation Format.std_formatter typedtree *)
 
