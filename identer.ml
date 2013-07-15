@@ -9,10 +9,10 @@ object
   method last_id = last_id
 end
 
-module Imap = Map.Make ( struct t = int let compare = compare end)
+module Imap = Map.Make ( struct type t = int let compare = compare end)
 
 class reidenter id =
-object
+object (self)
   inherit identer id
   val mutable idented = Imap.empty
   method clear = idented <- Imap.empty
@@ -22,7 +22,7 @@ object
     else
       try Imap.find i.stamp idented with
 	Not_found ->
-	  let id = mk_ident ~flags=i.flags i.name in
-	  idented <- Imap.add i.stamp id;
+	  let id = self#mk_ident ~flags:i.flags i.name in
+	  idented <- Imap.add i.stamp id idented;
 	  id
 end
