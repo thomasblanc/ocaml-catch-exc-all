@@ -39,10 +39,6 @@ object (self)
     in
     v2f_aux v fv_num fv_idents (* field 0 is the func ident *)
 
-(*  method mk_construct l =
-    counter <- succ counter;
-    Lprim ( Pmakeblock (counter, Asttypes.Immutable), l) *)
-
 
   inherit Lmapper.mapper as super
 
@@ -50,12 +46,11 @@ object (self)
   method! var i =
     try Imap.find i funs with
       Not_found ->
-	(* fv <- IdentSet.add i fv; *)
 	if IdentSet.mem i nonfree_vars 
 	then Lvar i
 	else
 	  if IdentSet.mem i fv
-	  then self#prim  ( Pfield ( self#v2f i)) [super#var switch_ident]
+	  then self#prim  ( Pfield ( self#v2f i)) [Lvar switch_ident]
 	  else
 	    begin
 	      fv <- IdentSet.add i fv;
@@ -65,11 +60,6 @@ object (self)
 	    end
 
   method! func kind args body =
-    (* should have a unary function *)
-    (* let arg = *)
-    (*   match args with *)
-    (*   | [a] -> a *)
-    (*   | _ -> assert false in *)
     let fv_save = fv in
     fv <- IdentSet.empty;
     let fv_idents_save = fv_idents in
@@ -77,30 +67,28 @@ object (self)
     let fv_num_save = fv_num in
     fv_num <- 0;
     let nonfree_vars_save = nonfree_vars in
-    nonfree_vars <- IdentSet.empty;
-    let f = super#func kind args body in
+    let arg = List.hd args in
+    nonfree_vars <- IdentSet.singleton arg;
+    let body' = self#lambda body in
     fv <- fv_save;
     let fvl = List.rev fv_idents in
     fv_idents <- fv_idents_save;
     fv_num <- fv_num_save;
     nonfree_vars <- nonfree_vars_save;
-    match f with
-    | Lfunction ( _, [arg], body') ->
-      let body'' = Llet ( Alias, arg, (super#var arg_ident), body') in
-      let c = bigswitch.sw_numconsts in
-      bigswitch <-
-	{ bigswitch with
-	  sw_numconsts = succ c;
-	  sw_consts = ( c, body'') :: bigswitch.sw_consts;
-	};
-      Lprim (
-	Pmakeblock ( 0, Asttypes.Immutable),
-	(
-	  (Lconst ( Const_base (Asttypes.Const_int c)))
-	  :: List.map super#var fvl
-	)
+    let body'' = Llet ( Alias, arg, (Lvar arg_ident), body') in
+    let c = bigswitch.sw_numconsts in
+    bigswitch <-
+      { bigswitch with
+	sw_numconsts = succ c;
+	sw_consts = ( c, body'') :: bigswitch.sw_consts;
+      };
+    Lprim (
+      Pmakeblock ( 0, Asttypes.Immutable),
+      (
+	(Lconst ( Const_base (Asttypes.Const_int c)))
+	:: List.map super#var fvl
       )
-    | _ -> assert false
+    )
 
   method! apply f args loc =
     let f = self#lambda f in
