@@ -117,4 +117,17 @@ let restore fn s nam =
   (* r#add_mod nam; *)
   ( nam, s)
     
+let add_interface fn =
+  let cmi = read_cmi fn in
+  let open Cmi_format in
+  r#add_module_env
+    Ident.({stamp = 0; name = cmi.cmi_name; flags = 0 })
+    ( Types.Mty_signature cmi.cmi_sign)
   
+let load_and_restore fn =
+  let cmt = read_cmt fn in
+  restore fn 
+    (match cmt.cmt_annots with
+    | Implementation s -> s
+    | _ -> assert false )
+    cmt.cmt_modname
