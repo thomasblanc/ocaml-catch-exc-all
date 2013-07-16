@@ -139,7 +139,7 @@ object (self)
 
   inherit Identer.reidenter i
 
-  val mutable globals = []
+  val mutable globals = ([] : ( Ident.t * lambda ) list )
 
   inherit Lmapper.mapper as super
 
