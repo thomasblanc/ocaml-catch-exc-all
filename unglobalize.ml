@@ -75,7 +75,7 @@ object (self)
     let arg = List.hd args in
     nonfree_vars <- IdentSet.singleton arg;
     let in_function_save = in_function in
-    in_function <- false;
+    in_function <- true;
     let body' = self#lambda body in
     fv <- fv_save;
     let fvl = List.rev fv_idents in
