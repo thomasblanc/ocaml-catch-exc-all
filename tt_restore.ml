@@ -2,14 +2,12 @@ open Cmt_format
 open Tt_mapper
 open Ident
 
-module Im = Map.Make ( struct type t = int let compare = compare end )
 module Sm = Map.Make ( struct type t = string let compare = compare end )
 
 exception Unspecified_module of string
 
 class restorer =
 object (self)
-  (* val mutable subst = Envaux.env_from_summary *)
 
   inherit mapper
 
@@ -37,7 +35,7 @@ object (self)
 
 
 
-  method env_from_summary sum subst = (* sans memoization, tout ca va exploser *)
+  method env_from_summary sum subst =
     try
       Hashtbl.find env_cache (sum, subst)
     with Not_found ->
@@ -87,15 +85,6 @@ object (self)
       in
       Hashtbl.add env_cache (sum, subst) env;
       env
-
-
-  (* method add_mod nam = *)
-  (*   let mi = Ident.({name =nam; stamp = 0; flags = 0}) in *)
-  (*   subst <- *)
-  (*     (fun sum sub -> *)
-  (* 	subst sum ( Subst.add_module mi (Path.Pident mi) sub *)
-  (* 	) *)
-  (*     ) *)
       
   method add_import f =
     if not ( Sm.mem f import )
@@ -114,7 +103,6 @@ let restore fn s nam =
   let i = Ident.({stamp = 0; name = nam; flags = 0 }) in
   r#add_module_env i mtype;
   r#reset_cache;
-  (* r#add_mod nam; *)
   ( nam, s)
     
 let add_interface fn =
