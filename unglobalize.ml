@@ -28,6 +28,7 @@ object (self)
   val mutable fv_idents = []
   val mutable fv_num = 0
   val mutable nonfree_vars = IdentSet.empty
+  val mutable recvars = []
 
   method boundvar i = nonfree_vars <- IdentSet.add i nonfree_vars
 
@@ -107,8 +108,17 @@ object (self)
 
   (* Maybe I should handle better the rec construction *)
   method! letrec l body =
+    let recvars_save = recvars in
+    let rec map_append l res =
+      match l with
+      | (a,_)::tl -> map_append tl ( a :: res)
+      | [] -> res
+    in
+    recvars <- map_append l recvars;
+    let l = List.map (fun (i,lam) -> (i,self#lambda lam)) l in
+    recvars <- recvars_save;
     List.iter (fun (i,_) -> self#boundvar i) l;
-    super#letrec l body
+    Lletrec ( l, self#lambda body)
     
 
   method! letin k i lam lin =
