@@ -1,51 +1,27 @@
-(* I should, someday, put the main code in here, here's the trailer: *)
-
-(* Step one: merge the cmts *)
+(* Step one: load  the cmts, turn them to lambda *)
 (* Now we just load them, merging later *)
 
 let () = print_endline "Step 1"
 
-let load_tt s =
-  let open Cmt_format in
-  let cmt = read_cmt s in
-  match cmt.cmt_annots with
-    Implementation str -> Tt_restore.restore s str cmt.cmt_modname
-  | _ -> assert false
-
-(*let typedtrees =
-  let open Sys in
-  let open Array in
-  (* Idents.merge_cmts ( sub argv 1 ( pred ( length argv))) *)
-  map load_tt ( sub argv 1 ( pred ( length argv)))
-
-(* let () = Printtyped.implementation Format.std_formatter typedtree *)
-
-(* Step two: put a name on every functions *)
-
-(* let ( typedtree, i) = Name_functions.name_functions typedtree i *)
-
-(* Step three: go to lambda code *)
-
-let () = print_endline "Step 3"
-*)
+(* a little clean could make it simpler *)
 let lambdas =
   Arguments.iterate
-  (* Array.map *)
     (fun ( name, tree) ->
-      Translmod.transl_implementation name ( tree, Typedtree.Tcoerce_none)
-    ) (* typedtrees *)
+      Translmod.transl_implementation name
+	( tree, Typedtree.Tcoerce_none)
+    )
 
-(* Step four: globalize the functions, unglobalize the non-func-values *)
-(* Maybe I should remove that structure around first ? Yes ? No ? Maybe ? *)
-(* This step has been composed with : *)
-(* Step five: start the big rec switch *)
+(* Step two: merge the lambda code
+   - removing the "global" primitive
+   - putting all functions on top of everything
+*)
 
-let () = print_endline "Step 4 and 5"
+let () = print_endline "Step 2"
 
 let lambda = Unglobalize.unglobalize lambdas
 
-(* for debugging purpose *)
+(* for debugging purpose, this shall not stay here in final code *)
 let () = Printlambda.lambda Format.std_formatter lambda
 
-(* Step six: analysis *)
-(* (* Step seven: compile ? *) *)
+(* Step three: analysis *)
+(* (* Step four: compile ? *) *)
