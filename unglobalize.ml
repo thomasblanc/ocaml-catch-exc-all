@@ -11,6 +11,8 @@ let arg_ident = { stamp = pred ( pred max_int); name = "#arg_f"; flags = 0}
 class transformer =
 object (self)
 
+  val mutable in_function = false
+
   val mutable funs = (Imap.empty : lambda Imap.t)
 
   val mutable bigswitch =
@@ -44,20 +46,23 @@ object (self)
 
 
   method! var i =
-    try Imap.find i funs with
-      Not_found ->
-	if IdentSet.mem i nonfree_vars 
-	then Lvar i
-	else
-	  if IdentSet.mem i fv
-	  then Lprim  ( Pfield ( self#v2f i), [Lvar switch_ident])
+    if in_function
+    then
+      try Imap.find i funs with
+	Not_found ->
+	  if IdentSet.mem i nonfree_vars 
+	  then Lvar i
 	  else
-	    begin
-	      fv <- IdentSet.add i fv;
-	      fv_idents <- i :: fv_idents;
-	      fv_num <- succ fv_num;
-	      Lprim (Pfield fv_num, [super#var switch_ident])
-	    end
+	    if IdentSet.mem i fv
+	    then Lprim  ( Pfield ( self#v2f i), [Lvar switch_ident])
+	    else
+	      begin
+		fv <- IdentSet.add i fv;
+		fv_idents <- i :: fv_idents;
+		fv_num <- succ fv_num;
+		Lprim (Pfield fv_num, [super#var switch_ident])
+	      end
+    else Lvar i
 
   method! func kind args body =
     let fv_save = fv in
@@ -69,12 +74,15 @@ object (self)
     let nonfree_vars_save = nonfree_vars in
     let arg = List.hd args in
     nonfree_vars <- IdentSet.singleton arg;
+    let in_function_save = in_function in
+    in_function <- false;
     let body' = self#lambda body in
     fv <- fv_save;
     let fvl = List.rev fv_idents in
     fv_idents <- fv_idents_save;
     fv_num <- fv_num_save;
     nonfree_vars <- nonfree_vars_save;
+    in_function <- in_function_save;
     let body'' = Llet ( Alias, arg, (Lvar arg_ident), body') in
     let c = bigswitch.sw_numconsts in
     bigswitch <-
