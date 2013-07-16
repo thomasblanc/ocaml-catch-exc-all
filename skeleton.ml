@@ -44,7 +44,7 @@ let () = print_endline "Step 4 and 5"
 let lambda = Unglobalize.unglobalize lambdas
 
 (* for debugging purpose *)
-(* let () = Printlambda.lambda Format.std_formatter lambda *)
+let () = Printlambda.lambda Format.std_formatter lambda
 
 (* Step six: analysis *)
 (* (* Step seven: compile ? *) *)
