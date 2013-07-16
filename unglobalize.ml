@@ -25,11 +25,9 @@ object (self)
     }
 
   val mutable fv = IdentSet.empty
-  (* val mutable fv_to_change = IdentSet.empty *)
   val mutable fv_idents = []
   val mutable fv_num = 0
   val mutable nonfree_vars = IdentSet.empty
-  (* val mutable argument_var = noarg *)
 
   method boundvar i = nonfree_vars <- IdentSet.add i nonfree_vars
 
@@ -39,7 +37,8 @@ object (self)
       | h :: t when h = v -> r
       | _ :: t -> v2f_aux v (pred r) t
     in
-    v2f_aux v fv_num fv_idents (* field 0 is the func ident *)
+    v2f_aux v fv_num fv_idents
+  (* field 0 is the func ident *)
 
 
   inherit Lmapper.mapper as super
@@ -106,7 +105,7 @@ object (self)
       | _ -> assert false in
     Lapply ( Lvar apply_ident, [f;arg], loc)
 
-  (* Maybe I should handle the ugly rec construction *)
+  (* Maybe I should handle better the rec construction *)
   method! letrec l body =
     List.iter (fun (i,_) -> self#boundvar i) l;
     super#letrec l body
@@ -184,17 +183,6 @@ object (self)
 
   method! prim p l =
     match p,l with
-    (* | Psetglobal i, [Lprim ( Pmakeblock _, ll)]  -> *)
-    (* 	(\* Printf.printf "New global %s/%d\n" i.name i.stamp; *\) *)
-    (*   let i = self#ident i in *)
-    (*   (\* Printlambda.lambda Format.std_formatter ( Lprim (p,l)); *\) *)
-    (*   self#register_global i ll; super#prim p l *)
-    (* | Pfield n, [Lprim (Pgetglobal i,[])] -> *)
-    (*   begin *)
-    (* 	let i = self#ident i in *)
-    (* 	try ( List.nth ( List.assoc i globals) n ) with *)
-    (* 	| Not_found -> super#prim p l *)
-    (*   end *)
     | Pgetglobal i, []  -> self#var i
     | _ -> super#prim p l
 
@@ -232,4 +220,4 @@ let unglobalize lambdas =
   in
   let lambda' = aux 0 in
   let o = new transformer in
-  o#mk_apply ( o#lambda lambda') (* for safety, we should do 2 maps *)
+  o#mk_apply ( o#lambda lambda')
