@@ -176,17 +176,17 @@ object (self)
 
   method! prim p l =
     match p,l with
-    | Psetglobal i, [Lprim ( Pmakeblock _, ll)]  ->
-	(* Printf.printf "New global %s/%d\n" i.name i.stamp; *)
-      let i = self#ident i in
-      (* Printlambda.lambda Format.std_formatter ( Lprim (p,l)); *)
-      self#register_global i ll; super#prim p l
-    | Pfield n, [Lprim (Pgetglobal i,[])] ->
-      begin
-	let i = self#ident i in
-	try ( List.nth ( List.assoc i globals) n ) with
-	| Not_found -> super#prim p l
-      end
+    (* | Psetglobal i, [Lprim ( Pmakeblock _, ll)]  -> *)
+    (* 	(\* Printf.printf "New global %s/%d\n" i.name i.stamp; *\) *)
+    (*   let i = self#ident i in *)
+    (*   (\* Printlambda.lambda Format.std_formatter ( Lprim (p,l)); *\) *)
+    (*   self#register_global i ll; super#prim p l *)
+    (* | Pfield n, [Lprim (Pgetglobal i,[])] -> *)
+    (*   begin *)
+    (* 	let i = self#ident i in *)
+    (* 	try ( List.nth ( List.assoc i globals) n ) with *)
+    (* 	| Not_found -> super#prim p l *)
+    (*   end *)
     | Pgetglobal i, []  -> self#var i
     | _ -> super#prim p l
 
@@ -209,8 +209,8 @@ let unglobalize lambdas =
     if i = pred (Array.length lambdas)
     then
       match u#lambda lambdas.(i) with
-      | Lprim (Psetglobal id, ( [Lprim (Pmakeblock _, ll) as lam]) ) ->
-	u#register_global id ll;
+      | Lprim (Psetglobal id, ( [lam]) ) ->
+	u#register_global id lam;
 	lam
       | _ -> assert false
     else
@@ -218,6 +218,7 @@ let unglobalize lambdas =
       u#clear;
       match l with
       | Lprim (Psetglobal id, [lam]) ->
+	u#register_global id lam;
 	Llet ( Alias, id, lam, aux (succ i))
       | _ -> assert false
   in
