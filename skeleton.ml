@@ -12,7 +12,7 @@ let load_tt s =
     Implementation str -> Tt_restore.restore s str cmt.cmt_modname
   | _ -> assert false
 
-let typedtrees =
+(*let typedtrees =
   let open Sys in
   let open Array in
   (* Idents.merge_cmts ( sub argv 1 ( pred ( length argv))) *)
@@ -27,12 +27,13 @@ let typedtrees =
 (* Step three: go to lambda code *)
 
 let () = print_endline "Step 3"
-
+*)
 let lambdas =
-  Array.map
+  Arguments.iterate
+  (* Array.map *)
     (fun ( name, tree) ->
       Translmod.transl_implementation name ( tree, Typedtree.Tcoerce_none)
-    ) typedtrees
+    ) (* typedtrees *)
 
 (* Step four: globalize the functions, unglobalize the non-func-values *)
 (* Maybe I should remove that structure around first ? Yes ? No ? Maybe ? *)
