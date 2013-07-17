@@ -7,5 +7,5 @@ end
 
 begin program "catch"
  files = [ "compilelambda.ml" "tt_restore.ml" "arguments.ml" "identer.ml" "lmapper.ml" "unglobalize.ml" "skeleton.ml" ]
- requires = [ "tt" "compiler-libs" "compiler-libs.common" ]
+ requires = [ "tt" "compiler-libs" "compiler-libs.common" "compiler-libs.optcomp" ]
 end
