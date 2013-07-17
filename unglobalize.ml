@@ -50,7 +50,7 @@ object (self)
     then
       try Imap.find i funs with
 	Not_found ->
-	  if IdentSet.mem i nonfree_vars 
+	  if IdentSet.mem i nonfree_vars (* || List.mem i recvars (* could be here waiting for post-replacement *)  *)
 	  then Lvar i
 	  else
 	    if IdentSet.mem i fv
@@ -93,7 +93,7 @@ object (self)
     Lprim (
       Pmakeblock ( 0, Asttypes.Immutable),
       (
-	(Lconst ( Const_base (Asttypes.Const_int c)))
+	(Lconst ( Const_pointer  c))
 	:: List.map super#var fvl
       )
     )
