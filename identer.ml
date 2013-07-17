@@ -23,6 +23,7 @@ object (self)
       try Imap.find i.stamp idented with
 	Not_found ->
 	  let id = self#mk_ident ~flags:i.flags i.name in
+	  (* Printf.printf "%s: %d -> %d\n" i.name i.stamp id.stamp; *)
 	  idented <- Imap.add i.stamp id idented;
 	  id
 end

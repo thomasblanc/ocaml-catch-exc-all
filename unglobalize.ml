@@ -156,6 +156,9 @@ object (self)
 
   inherit Identer.reidenter i
 
+  (* method ! ident i = *)
+  (*   Printf.printf "%s: %d\n" i.name i.stamp; i *)
+
   val mutable globals = ([] : ( Ident.t * lambda ) list )
 
   inherit Lmapper.mapper as super
@@ -168,15 +171,15 @@ object (self)
       Lfunction ( k, [a], self#lambda body)
     | hd :: tl ->
       let a = self#ident hd in
-      super#func k [a] (self#func k tl body) (* is that smart ? *)
+      Lfunction ( k, [a], (self#func k tl body))
 
   method! apply f args loc =
     let rec aux f args =
       match args with
       | [] -> assert false
-      | _ :: [] -> super#apply f args loc
-      | hd :: tl -> aux (super#apply f [hd] loc) tl in
-    aux f args
+      | a :: [] -> Lapply ( f, args, loc)
+      | hd :: tl -> aux (Lapply ( f, [hd], loc)) tl in
+    aux (self#lambda f) (List.map self#lambda args)
 
   method! send kind obj meth args loc =
     let i_obj = self#mk_ident "#object" in
