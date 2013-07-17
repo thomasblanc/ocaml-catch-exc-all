@@ -21,7 +21,11 @@ let () = print_endline "Step 2"
 let lambda = Unglobalize.unglobalize lambdas
 
 (* for debugging purpose, this shall not stay here in final code *)
-let () = Printlambda.lambda Format.std_formatter lambda
+let () =
+  if Arguments.print ()
+  then Printlambda.lambda Format.std_formatter lambda;
+  if Arguments.comp ()
+  then Compilelambda.comp lambda;
 
 (* Step three: analysis *)
 (* (* Step four: compile ? *) *)

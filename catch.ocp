@@ -6,6 +6,6 @@ begin library "tt"
 end
 
 begin program "catch"
- files = [ "tt_restore.ml" "arguments.ml" "identer.ml" "lmapper.ml" "unglobalize.ml" "skeleton.ml" ]
+ files = [ "compilelambda.ml" "tt_restore.ml" "arguments.ml" "identer.ml" "lmapper.ml" "unglobalize.ml" "skeleton.ml" ]
  requires = [ "tt" "compiler-libs" "compiler-libs.common" ]
 end
