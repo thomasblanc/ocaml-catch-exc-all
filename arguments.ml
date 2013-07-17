@@ -20,7 +20,7 @@ let print_usage = "Print the created lambda code"
 
 let comp_flag = ref false
 let comp () = !comp_flag
-let comp_usage = "Compiles the created lambda code to file a.out"
+let comp_usage = "Compiles the created lambda code to file lambda_out.cmx"
 
 let args =
   [
